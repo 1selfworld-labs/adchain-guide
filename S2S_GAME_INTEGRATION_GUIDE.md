@@ -698,11 +698,3 @@ function createPushMessage(payload) {
 - **기술 지원**: developer@1self.world
 
 ---
-
-## 변경 이력
-
-| 버전 | 날짜       | 변경 내용                                                                                                                                                                                             |
-| ---- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.2  | 2025-11-26 | 포스트백 필드명 변경 (campaign_key→event_id, campaign_name→event_name, mission_id 추가), campaign_model/install_id 필드 추가, 서명 검증 방식 업데이트                                                 |
-| 1.1  | 2025-11-26 | Event 필드 추가 (biddingModel, type, updateDate, score, subtitle, footerDescription, action), Mission 필드 추가 (maxCountOccurences, maxCountTimeframeInSeconds, trackerDelay, attributionWindowDays) |
-| 1.0  | 2025-11-26 | 초기 버전 발행                                                                                                                                                                                        |
