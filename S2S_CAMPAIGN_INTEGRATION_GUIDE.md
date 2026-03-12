@@ -93,7 +93,7 @@ x-pub-secret: {발급받은_pub_secret}
 
 ### 5.1 이벤트 목록 조회
 
-활성화된 CPA 캠페인 이벤트 목록을 조회합니다. 비활성 캠페인은 목록에서 제외되며, 일일 물량이 소진된 캠페인은 `isAvailable: false`로 표시됩니다.
+매체사에 할당된 전체 활성 CPA 캠페인 이벤트 목록을 조회합니다. 비활성 캠페인은 목록에서 제외되며, 일일 물량이 소진된 캠페인은 `isAvailable: false`로 표시됩니다.
 
 **Endpoint**
 
@@ -112,13 +112,11 @@ GET /v1/api/campaign/pub
 | 파라미터 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | platform | enum | Y | `android` 또는 `ios` |
-| page | string | N | 페이지 번호 (기본: 1) |
-| limit | string | N | 페이지 크기 (기본: 10) |
 
 **Request 예시**
 
 ```bash
-curl -X GET "https://adchain-api.1self.world/v1/api/campaign/pub?platform=android&page=1&limit=10" \
+curl -X GET "https://adchain-api.1self.world/v1/api/campaign/pub?platform=android" \
   -H "x-pub-secret: your_pub_secret_here"
 ```
 
@@ -143,13 +141,7 @@ curl -X GET "https://adchain-api.1self.world/v1/api/campaign/pub?platform=androi
       "revenueType": "cpa",
       "isAvailable": true
     }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 10,
-    "total": 25,
-    "totalPages": 3
-  }
+  ]
 }
 ```
 
@@ -193,17 +185,17 @@ POST /v1/api/campaign/pub/landing-url
 
 **Request Body**
 
-| 필드 | 타입 | 필수 | 설명 |
-| --- | --- | --- | --- |
-| eventId | string | Y | 이벤트 ID (UUID) |
-| userId | string | Y | 최종 유저 식별자 |
-| platform | enum | Y | `android` 또는 `ios` |
-| ifa | string | **Y** | 광고 식별자 (GAID/IDFA) |
-| extra1 | string | N | 매체사 자유 필드 1 — 포스트백 시 그대로 반환 |
-| extra2 | string | N | 매체사 자유 필드 2 — 포스트백 시 그대로 반환 |
-| extra3 | string | N | 매체사 자유 필드 3 — 포스트백 시 그대로 반환 |
-| extra4 | string | N | 매체사 자유 필드 4 — 포스트백 시 그대로 반환 |
-| extra5 | string | N | 매체사 자유 필드 5 — 포스트백 시 그대로 반환 |
+| 필드 | 타입 | 필수 | 최대 길이 | 설명 |
+| --- | --- | --- | --- | --- |
+| eventId | string | Y | 36자 | 이벤트 ID (UUID) |
+| userId | string | Y | 128자 | 최종 유저 식별자 |
+| platform | enum | Y | - | `android` 또는 `ios` |
+| ifa | string | **Y** | 36자 | 광고 식별자 (GAID/IDFA) |
+| extra1 | string | N | 128자 | 매체사 자유 필드 1 — 포스트백 시 그대로 반환 |
+| extra2 | string | N | 128자 | 매체사 자유 필드 2 — 포스트백 시 그대로 반환 |
+| extra3 | string | N | 128자 | 매체사 자유 필드 3 — 포스트백 시 그대로 반환 |
+| extra4 | string | N | 128자 | 매체사 자유 필드 4 — 포스트백 시 그대로 반환 |
+| extra5 | string | N | 128자 | 매체사 자유 필드 5 — 포스트백 시 그대로 반환 |
 
 > **중요**: `ifa`는 **필수** 파라미터입니다. CPA 캠페인의 정확한 어트리뷰션을 위해 반드시 전달해야 합니다.
 
@@ -288,7 +280,7 @@ curl -X POST "https://adchain-api.1self.world/v1/api/campaign/pub/landing-url" \
 | event_name | string | N | 이벤트 제목 |
 | signed_value | string | Y | HMAC-MD5 서명값 |
 | os | string | N | 운영체제 (android/ios) |
-| ifa | string | N | 광고 식별자 (GAID/IDFA) |
+| ifa | string | N | 광고 식별자 (GAID/IDFA) — 랜딩 URL 생성 시 전달한 값이 있으면 그대로 반환 |
 | app_key | string | N | 앱 식별 키 (서명 검증 시 app_secret 선택에 사용) |
 | extra1 | string | N | 랜딩 URL 생성 시 전달한 매체사 자유 필드 1 |
 | extra2 | string | N | 랜딩 URL 생성 시 전달한 매체사 자유 필드 2 |
