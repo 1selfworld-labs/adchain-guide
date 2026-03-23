@@ -257,8 +257,8 @@ curl -X POST "https://adchain-api.1self.world/v1/api/campaign/pub/landing-url" \
   "revenue_type": "cpa",
   "user_id": "user_12345",
   "amount": "1500",
-  "event_id": "550e8400-e29b-41d4-a716-446655440000",
-  "event_name": "[최초실행] 레진스낵 실행하기",
+  "campaign_key": "550e8400-e29b-41d4-a716-446655440000",
+  "campaign_name": "[최초실행] 레진스낵 실행하기",
   "signed_value": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
   "os": "android",
   "ifa": "38400000-8cf0-11bd-b23e-10b96e40000d",
@@ -276,12 +276,12 @@ curl -X POST "https://adchain-api.1self.world/v1/api/campaign/pub/landing-url" \
 | revenue_type | string | Y | 수익화 모델 (`cpa`: 액션 완료) |
 | user_id | string | Y | 최종 유저 식별자 |
 | amount | string | Y | 보상 포인트 |
-| event_id | string | Y | 이벤트 ID (eventId) |
-| event_name | string | N | 이벤트 제목 |
+| campaign_key | string | Y | 캠페인 고유 키 |
+| campaign_name | string | N | 캠페인 명칭 |
 | signed_value | string | Y | HMAC-MD5 서명값 |
 | os | string | N | 운영체제 (android/ios) |
 | ifa | string | N | 광고 식별자 (GAID/IDFA) — 랜딩 URL 생성 시 전달한 값이 있으면 그대로 반환 |
-| app_key | string | N | 앱 식별 키 (서명 검증 시 app_secret 선택에 사용) |
+| app_key | string | N | 앱 식별자 (서명 검증 시 app_secret 선택에 사용) |
 | extra1 | string | N | 랜딩 URL 생성 시 전달한 매체사 자유 필드 1 |
 | extra2 | string | N | 랜딩 URL 생성 시 전달한 매체사 자유 필드 2 |
 | extra3 | string | N | 랜딩 URL 생성 시 전달한 매체사 자유 필드 3 |
@@ -334,7 +334,7 @@ Content-Type: application/json
 1. **서명 대상 문자열 생성**:
 
 ```
-plainText = callback_id + user_id + amount + event_id
+plainText = callback_id + user_id + amount + campaign_key
 ```
 
 2. **HMAC-MD5 해시 생성**:
@@ -386,13 +386,13 @@ function getAppSecret(payload) {
 }
 
 function validateSignature(payload) {
-  const { callback_id, user_id, amount, event_id, signed_value } = payload;
+  const { callback_id, user_id, amount, campaign_key, signed_value } = payload;
 
   // 적절한 app_secret 선택
   const appSecret = getAppSecret(payload);
 
   // 서명 대상 문자열 생성
-  const plainText = `${callback_id}${user_id}${amount}${event_id}`;
+  const plainText = `${callback_id}${user_id}${amount}${campaign_key}`;
 
   // HMAC-MD5 해시 생성
   const hmac = crypto.createHmac('md5', appSecret);
@@ -424,7 +424,7 @@ app.post('/postback', (req, res) => {
 1. **app_secret 보안**: 절대 외부에 노출하지 마세요
 2. **검증 필수**: 모든 포스트백에 대해 서명 검증을 수행하세요
 3. **검증 실패 시**: HTTP 401 응답을 반환하세요
-4. **문자열 순서**: `callback_id → user_id → amount → event_id` 순서가 중요합니다
+4. **문자열 순서**: `callback_id → user_id → amount → campaign_key` 순서가 중요합니다
 
 ---
 
@@ -504,8 +504,8 @@ app.post('/campaign-postback', async (req, res) => {
   "revenue_type": "cpa",
   "user_id": "user_12345",
   "amount": "800",
-  "event_id": "550e8400-e29b-41d4-a716-446655440000",
-  "event_name": "배달 앱 설치",
+  "campaign_key": "550e8400-e29b-41d4-a716-446655440000",
+  "campaign_name": "배달 앱 설치",
   "signed_value": "7f8a9b2c3d4e5f6a1b2c3d4e5f6a7b8c",
   "app_key": "100000001",
   "os": "android",
@@ -524,8 +524,8 @@ app.post('/campaign-postback', async (req, res) => {
   "revenue_type": "cpa",
   "user_id": "user_12345",
   "amount": "3000",
-  "event_id": "660f9511-f30c-52e5-b827-557766551111",
-  "event_name": "증권 앱 계좌 개설",
+  "campaign_key": "660f9511-f30c-52e5-b827-557766551111",
+  "campaign_name": "증권 앱 계좌 개설",
   "signed_value": "9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a",
   "app_key": "100000001",
   "os": "android",
