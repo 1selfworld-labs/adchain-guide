@@ -37,11 +37,11 @@ S2S(Server-to-Server) 연동은 매체사 서버에서 AdChain API를 직접 호
 | # | 항목 | 설명 | 담당 |
 |---|------|------|------|
 | 1 | 연동 요청 | AdChain 담당자에게 S2S 연동 요청 | 매체사 → AdChain |
-| 2 | `pub_secret` 발급 | 매체사 등록 완료 후 키 전달 | AdChain → 매체사 |
+| 2 | `pub_secret` / `app_key` 발급 | 매체사 등록 완료 후 키 전달 | AdChain → 매체사 |
 | 3 | 콜백 URL 전달 | 포스트백을 수신할 매체사 서버 URL 전달 | 매체사 → AdChain |
 | 4 | 연동 테스트 | 스테이지 환경에서 API 호출 확인 | 매체사 |
 
-> `pub_secret`은 매체사에서 직접 생성하는 것이 아니라, 연동 요청 시 AdChain에서 발급하여 전달합니다.
+> `pub_secret`과 `app_key`는 매체사에서 직접 생성하는 것이 아니라, 연동 요청 시 AdChain에서 발급하여 전달합니다. `app_key`는 앱(OS)별로 구분되는 고유 식별자입니다.
 > 기술 지원: developer@1self.world
 
 ---
@@ -64,17 +64,23 @@ S2S(Server-to-Server) 연동은 매체사 서버에서 AdChain API를 직접 호
 
 ## 4. 인증
 
-### x-pub-secret 헤더
+### 인증 헤더
 
-S2S API는 `x-pub-secret` 헤더를 사용하여 인증합니다.
+S2S API는 `x-pub-secret`과 `x-app-key` 헤더를 사용하여 인증합니다.
 
 ```http
 x-pub-secret: {발급받은_pub_secret}
+x-app-key: {발급받은_app_key}
 ```
+
+| 헤더 | 필수 | 설명 |
+|---|---|---|
+| x-pub-secret | Y | 매체사 시크릿 키 |
+| x-app-key | Y | 앱 식별자 (OS별 구분, AdChain에서 발급) |
 
 ### 주의사항
 
-- `pub_secret`은 서버 환경변수로 안전하게 관리해야 합니다
+- `pub_secret`과 `app_key`는 서버 환경변수로 안전하게 관리해야 합니다
 - 클라이언트 코드에 절대 노출하지 마세요
 - 유출 시 즉시 재발급 요청해 주세요
 
@@ -106,6 +112,7 @@ GET /v1/api/campaign/pub
 | 헤더 | 필수 | 설명 |
 | --- | --- | --- |
 | x-pub-secret | Y | 매체사 시크릿 키 |
+| x-app-key | Y | 앱 식별자 |
 
 **Query Parameters**
 
@@ -117,7 +124,8 @@ GET /v1/api/campaign/pub
 
 ```bash
 curl -X GET "https://adchain-api.1self.world/v1/api/campaign/pub?platform=android" \
-  -H "x-pub-secret: your_pub_secret_here"
+  -H "x-pub-secret: your_pub_secret_here" \
+  -H "x-app-key: 200000001"
 ```
 
 **Response**
@@ -181,6 +189,7 @@ POST /v1/api/campaign/pub/landing-url
 | 헤더 | 필수 | 설명 |
 | --- | --- | --- |
 | x-pub-secret | Y | 매체사 시크릿 키 |
+| x-app-key | Y | 앱 식별자 |
 | Content-Type | Y | application/json |
 
 **Request Body**
@@ -206,6 +215,7 @@ POST /v1/api/campaign/pub/landing-url
 ```bash
 curl -X POST "https://adchain-api.1self.world/v1/api/campaign/pub/landing-url" \
   -H "x-pub-secret: your_pub_secret_here" \
+  -H "x-app-key: 200000001" \
   -H "Content-Type: application/json" \
   -d '{
     "eventId": "550e8400-e29b-41d4-a716-446655440000",
@@ -349,8 +359,8 @@ plainText = callback_id + user_id + amount + campaign_key
 ```javascript
 // app_key 기반 (권장)
 const APP_SECRETS = {
-  100000001: process.env.ANDROID_APP_SECRET,
-  100000002: process.env.IOS_APP_SECRET,
+  200000001: process.env.ANDROID_APP_SECRET,
+  200000002: process.env.IOS_APP_SECRET,
 };
 
 // os 기반
@@ -367,8 +377,8 @@ const crypto = require('crypto');
 
 // Secret Key 설정
 const APP_SECRETS = {
-  100000001: process.env.ANDROID_APP_SECRET,
-  100000002: process.env.IOS_APP_SECRET,
+  200000001: process.env.ANDROID_APP_SECRET,
+  200000002: process.env.IOS_APP_SECRET,
 };
 
 const OS_SECRETS = {
@@ -507,7 +517,7 @@ app.post('/campaign-postback', async (req, res) => {
   "campaign_key": "550e8400-e29b-41d4-a716-446655440000",
   "campaign_name": "배달 앱 설치",
   "signed_value": "7f8a9b2c3d4e5f6a1b2c3d4e5f6a7b8c",
-  "app_key": "100000001",
+  "app_key": "200000001",
   "os": "android",
   "ifa": "38400000-8cf0-11bd-b23e-10b96e40000d",
   "extra1": "sub_media_001",
@@ -527,7 +537,7 @@ app.post('/campaign-postback', async (req, res) => {
   "campaign_key": "660f9511-f30c-52e5-b827-557766551111",
   "campaign_name": "증권 앱 계좌 개설",
   "signed_value": "9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a",
-  "app_key": "100000001",
+  "app_key": "200000001",
   "os": "android",
   "ifa": "38400000-8cf0-11bd-b23e-10b96e40000d",
   "extra1": "sub_media_002",
