@@ -118,15 +118,17 @@ GET /v1/api/campaign/pub
 
 | 파라미터 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
-| platform | enum | Y | `android` 또는 `ios` |
+| ~~platform~~ | ~~enum~~ | ~~Y~~ | ~~`android` 또는 `ios`~~ **(Deprecated)** — `x-app-key` 헤더로 앱(OS)이 구분되므로 더 이상 사용하지 않습니다. 하위 호환을 위해 전달할 수 있으나, 향후 제거될 예정입니다. |
 
 **Request 예시**
 
 ```bash
-curl -X GET "https://adchain-api.1self.world/v1/api/campaign/pub?platform=android" \
+curl -X GET "https://adchain-api.1self.world/v1/api/campaign/pub" \
   -H "x-pub-secret: your_pub_secret_here" \
   -H "x-app-key: 200000001"
 ```
+
+> **참고**: `platform` 쿼리 파라미터는 Deprecated되었습니다. `x-app-key`로 앱(OS)이 구분되므로 별도 전달이 필요하지 않습니다.
 
 **Response**
 
