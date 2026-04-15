@@ -9,12 +9,18 @@
 - [5. API 명세](#5-api-명세)
   - [5.1 이벤트 목록 조회](#51-이벤트-목록-조회)
   - [5.2 랜딩 URL 생성](#52-랜딩-url-생성)
-- [6. 포스트백 수신](#6-포스트백-수신)
-- [7. 서명 검증](#7-서명-검증)
-- [8. 구현 가이드](#8-구현-가이드)
-- [9. 데이터 예시](#9-데이터-예시)
-- [10. 테스트 가이드](#10-테스트-가이드)
-- [11. 문의](#11-문의)
+- [6. 에러 응답](#6-에러-응답)
+  - [6.1 응답 포맷](#61-응답-포맷)
+  - [6.2 errorCode 목록](#62-errorcode-목록)
+  - [6.3 엔드포인트별 발생 가능 에러](#63-엔드포인트별-발생-가능-에러)
+  - [6.4 하위호환성](#64-하위호환성)
+  - [6.5 매체사 내부 코드 매핑 참고](#65-매체사-내부-코드-매핑-참고)
+- [7. 포스트백 수신](#7-포스트백-수신)
+- [8. 서명 검증](#8-서명-검증)
+- [9. 구현 가이드](#9-구현-가이드)
+- [10. 데이터 예시](#10-데이터-예시)
+- [11. 테스트 가이드](#11-테스트-가이드)
+- [12. 문의](#12-문의)
 
 ---
 
@@ -245,9 +251,93 @@ curl -X POST "https://adchain-api.1self.world/v1/api/campaign/pub/landing-url" \
 | success | boolean | 성공 여부 |
 | landingUrl | string | 트래킹이 적용된 랜딩 URL (유저를 이 URL로 리다이렉트) |
 
+**에러 응답**
+
+실패 시 HTTP `400` 또는 `401`이 반환됩니다. 상세 에러 포맷 및 발생 가능한 errorCode는 [6. 에러 응답](#6-에러-응답)을 참고하세요.
+
 ---
 
-## 6. 포스트백 수신
+## 6. 에러 응답
+
+### 6.1 응답 포맷
+
+실패 응답은 아래 포맷을 따릅니다. 기존 필드(`statusCode`/`success`, `message`)는 그대로 유지되며, 매체사는 `errorCode` 필드(숫자)로 에러 케이스를 구분할 수 있습니다.
+
+**예시**
+
+```json
+HTTP/1.1 400 Bad Request
+
+{
+  "statusCode": 400,
+  "message": "Already participated",
+  "errorCode": 450
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| statusCode | number | Y | HTTP status code (응답 헤더와 동일) |
+| message | string | Y | 사람이 읽을 수 있는 에러 설명 (디버깅/로깅용) |
+| errorCode | number | Y | AdChain 에러 코드 (3자리 숫자) — 매체사 매핑에 사용 |
+
+> **주의**: `message` 문자열은 로깅/디버깅 용도입니다. 매체사 내부 로직 분기는 반드시 `errorCode` 기준으로 작성해 주세요. `message`는 사전 공지 없이 문구가 보강될 수 있습니다.
+>
+> `errorCode`는 HTTP status와 **별개의 값**입니다. 예를 들어 HTTP `400`이더라도 `errorCode`는 `450`, `451`, `452` 등 세부 원인에 따라 달라집니다.
+
+### 6.2 errorCode 목록
+
+| errorCode | HTTP | 이름 | 설명 |
+| --- | --- | --- | --- |
+| `401` | 401 | AUTH_MISSING_SECRET | `x-pub-secret` 헤더가 요청에 없음 |
+| `402` | 401 | AUTH_INVALID_SECRET | `x-pub-secret` 값이 유효하지 않거나 비활성화된 매체사 |
+| `400` | 400 | VALIDATION_MISSING_APP_KEY | `x-app-key` 헤더가 요청에 없음 (GET `/pub`) |
+| `450` | 400 | ALREADY_PARTICIPATED | 동일 유저/기기가 이미 해당 이벤트에 참여함 |
+| `451` | 400 | EVENT_NOT_FOUND | `eventId`에 해당하는 이벤트가 없거나 비활성 상태 |
+| `452` | 400 | CAMPAIGN_ENDED | 캠페인이 광고주 측에서 종료 처리됨 |
+| `453` | 400 | QUOTA_EXHAUSTED | 당일 캠페인 물량이 모두 소진됨 (익일 재개 가능) |
+| `454` | 400 | EVENT_APP_KEY_MISMATCH | 요청 `x-app-key`가 해당 이벤트의 소속 앱과 다름 |
+| `461` | 400 | PROVIDER_ERROR | 외부 광고 네트워크 호출 실패 또는 자격 미달 (기기/유저 조건 등) |
+| `500` | 500 | SERVER_INTERNAL_ERROR | AdChain 서버 내부 예외 — 재시도 권장 |
+
+### 6.3 엔드포인트별 발생 가능 에러
+
+#### `GET /v1/api/campaign/pub`
+
+| errorCode | HTTP | 이름 |
+| --- | --- | --- |
+| `401` | 401 | AUTH_MISSING_SECRET |
+| `402` | 401 | AUTH_INVALID_SECRET |
+| `400` | 400 | VALIDATION_MISSING_APP_KEY |
+| `500` | 500 | SERVER_INTERNAL_ERROR |
+
+#### `POST /v1/api/campaign/pub/landing-url`
+
+| errorCode | HTTP | 이름 |
+| --- | --- | --- |
+| `401` | 401 | AUTH_MISSING_SECRET |
+| `402` | 401 | AUTH_INVALID_SECRET |
+| `450` | 400 | ALREADY_PARTICIPATED |
+| `451` | 400 | EVENT_NOT_FOUND |
+| `452` | 400 | CAMPAIGN_ENDED |
+| `453` | 400 | QUOTA_EXHAUSTED |
+| `454` | 400 | EVENT_APP_KEY_MISMATCH |
+| `461` | 400 | PROVIDER_ERROR |
+| `500` | 500 | SERVER_INTERNAL_ERROR |
+
+### 6.4 하위호환성
+
+- 기존 연동된 매체사의 동작은 그대로 유지됩니다. **HTTP status와 `message` 문자열은 동결**되어 있으며 변경되지 않습니다.
+- `errorCode` 필드는 **추가 제공되는 필드**이며, 기존 매체사가 이를 무시해도 연동 동작에는 영향이 없습니다.
+- 신규 연동 또는 세분화된 에러 처리가 필요한 매체사는 `errorCode`를 기준으로 분기 로직을 구현해 주세요.
+
+### 6.5 매체사 내부 코드 매핑 참고
+
+매체사에서 자체 에러 코드 체계를 운영하는 경우, AdChain `errorCode`(숫자)를 그대로 또는 변환하여 매핑할 수 있습니다. AdChain의 `errorCode` 번호 대역은 매체사 업계에서 통용되는 관례(`450` 이미 참여, `451` 종료, `461` 참여 불가 등)를 참고하여 설계되었습니다.
+
+---
+
+## 7. 포스트백 수신
 
 최종 유저가 이벤트 액션을 완료하면 AdChain에서 매체사 서버로 포스트백을 전송합니다.
 
@@ -335,7 +425,7 @@ Content-Type: application/json
 
 ---
 
-## 7. 서명 검증
+## 8. 서명 검증
 
 ### 서명 검증 필요성
 
@@ -440,7 +530,7 @@ app.post('/postback', (req, res) => {
 
 ---
 
-## 8. 구현 가이드
+## 9. 구현 가이드
 
 ### 중복 처리 방지 (필수)
 
@@ -505,7 +595,7 @@ app.post('/campaign-postback', async (req, res) => {
 
 ---
 
-## 9. 데이터 예시
+## 10. 데이터 예시
 
 ### CPA 앱 설치 포스트백
 
@@ -549,7 +639,7 @@ app.post('/campaign-postback', async (req, res) => {
 
 ---
 
-## 10. 테스트 가이드
+## 11. 테스트 가이드
 
 ### 테스트 환경
 
@@ -576,7 +666,7 @@ app.post('/campaign-postback', async (req, res) => {
 
 ---
 
-## 11. 문의
+## 12. 문의
 
 연동 관련 문의사항이 있으시면 아래 채널로 연락 주시기 바랍니다:
 
